@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
+        SONAR_TOKEN  = credentials('SonarQube-Token')  // Add this in Jenkins credentials
     }
 
     stages {
@@ -20,7 +21,17 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                echo "Run SonarQube Scan here (requires SonarQube setup)"
+                withSonarQubeEnv('MySonarQube') {  // must match the name you configure in Jenkins → System
+                    dir('bookmyshow-app') {
+                        sh '''
+                            sonar-scanner \
+                              -Dsonar.projectKey=book-my-show \
+                              -Dsonar.sources=src \
+                              -Dsonar.host.url=http://16.171.199.108:9000 \
+                              -Dsonar.login=$SONAR_TOKEN
+                        '''
+                    }
+                }
             }
         }
 
@@ -59,11 +70,9 @@ pipeline {
 
         stage('Email Notification') {
             steps {
-                script {
-                    mail to: 'vishalrawat27m@gmail.com',
-                         subject: "Jenkins Build ${currentBuild.fullDisplayName}",
-                         body: "Build Status: ${currentBuild.currentResult}\nCheck console output at ${env.BUILD_URL}"
-                }
+                mail to: 'vishalrawat27m@gmail.com',
+                     subject: "Jenkins Build ${currentBuild.fullDisplayName}",
+                     body: "Build Status: ${currentBuild.currentResult}\nCheck console output at ${env.BUILD_URL}"
             }
         }
     }
