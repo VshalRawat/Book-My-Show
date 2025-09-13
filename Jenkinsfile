@@ -59,14 +59,16 @@ pipeline {
     }
 
     post {
-        always {
-            echo "Build finished!"
-        }
-        success {
-            echo "Build and Deploy Successful!"
-        }
-        failure {
-            echo "Build Failed!"
-        }
+    always {
+        echo "Build finished!"
+        mail to: 'vishalrawat27m@gmail.com',
+             subject: "Jenkins Build ${currentBuild.fullDisplayName}",
+             body: "Build Status: ${currentBuild.currentResult}\nCheck console output at ${env.BUILD_URL}"
+    }
+    success {
+        echo "Build and Deploy Successful!"
+    }
+    failure {
+        echo "Build Failed!"
     }
 }
