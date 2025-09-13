@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE ="vishalk15v/book-my-show:latest"
+        DOCKER_IMAGE = "vishalk15v/book-my-show:latest"  
     }
 
     stages {
@@ -20,24 +20,28 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                echo "Run SonarQube Scan here"
+                echo "Run SonarQube Scan here (requires SonarQube setup)"
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                dir('bookmyshow-app') {
+                    sh 'npm install'
+                }
             }
         }
 
         stage('Docker Build & Push') {
             steps {
-                script {
-                    docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
-                        def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
-                        img.push()
-                        sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
-                        sh "docker push ${env.DOCKER_IMAGE}:latest"
+                dir('bookmyshow-app') {
+                    script {
+                        docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
+                            def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
+                            img.push()
+                            sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
+                            sh "docker push ${env.DOCKER_IMAGE}:latest"
+                        }
                     }
                 }
             }
@@ -45,10 +49,12 @@ pipeline {
 
         stage('Deploy to Docker Container') {
             steps {
-                script {
-                    sh 'docker stop bms_app || true'
-                    sh 'docker rm bms_app || true'
-                    sh 'docker run -d --name bms_app -p 3000:3000 ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}'
+                dir('bookmyshow-app') {
+                    script {
+                        sh 'docker stop bms_app || true'
+                        sh 'docker rm bms_app || true'
+                        sh 'docker run -d --name bms_app -p 3000:3000 ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}'
+                    }
                 }
             }
         }
@@ -65,4 +71,4 @@ pipeline {
             echo "Build Failed!"
         }
     }
-} 
+}
