@@ -45,18 +45,16 @@ pipeline {
         }
 
         stage('Deploy to Docker Container') {
-            steps {
-                script {
-                 
-                    sh 'docker stop bms_app || true'
-                    sh 'docker rm bms_app || true'
+    steps {
+        script {
+            
+            sh 'docker stop bms_app || true'
+            sh 'docker rm bms_app || true'
 
-                  
-                    sh 'docker run -d --name bms_app -p 3000:3000 ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}'
-                }
-            }
+            sh 'docker run -d --name bms_app -p 3000:3000 ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}'
         }
     }
+}
 
     post {
         always {
