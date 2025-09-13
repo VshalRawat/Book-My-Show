@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "vishalk15v/book-my-show:latest"
+        DOCKER_IMAGE = "vshalrawat/book-my-show:latest"
     }
 
     stages {
@@ -20,7 +20,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                echo "Run SonarQube Scan here (requires SonarQube setup)"
+                echo "Run SonarQube Scan here"
             }
         }
 
@@ -33,10 +33,9 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {   
+                    docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
                         def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
                         img.push()
-
                         sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
                         sh "docker push ${env.DOCKER_IMAGE}:latest"
                     }
@@ -45,16 +44,15 @@ pipeline {
         }
 
         stage('Deploy to Docker Container') {
-    steps {
-        script {
-            
-            sh 'docker stop bms_app || true'
-            sh 'docker rm bms_app || true'
-
-            sh 'docker run -d --name bms_app -p 3000:3000 ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}'
+            steps {
+                script {
+                    sh 'docker stop bms_app || true'
+                    sh 'docker rm bms_app || true'
+                    sh 'docker run -d --name bms_app -p 3000:3000 ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}'
+                }
+            }
         }
     }
-}
 
     post {
         always {
@@ -67,5 +65,4 @@ pipeline {
             echo "Build Failed!"
         }
     }
-}
-}
+} 
