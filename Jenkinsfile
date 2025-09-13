@@ -33,19 +33,19 @@ pipeline {
         }
 
         stage('Docker Build & Push') {
-            steps {
-                dir('bookmyshow-app') {
-                    script {
-                        docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
-                            def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
-                            img.push()
-                            sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
-                            sh "docker push ${env.DOCKER_IMAGE}:latest"
-                        }
-                    }
+    steps {
+        dir('bookmyshow-app') {
+            script {
+                docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
+                    def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
+                    img.push()
+                    sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
+                    sh "docker push ${env.DOCKER_IMAGE}:latest"
                 }
             }
         }
+    }
+}
 
         stage('Deploy to Docker Container') {
             steps {
