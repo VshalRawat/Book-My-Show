@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "vishalk15v/book-my-show:latest"  
+        DOCKER_IMAGE = "vishalk15v/book-my-show"   
     }
 
     stages {
