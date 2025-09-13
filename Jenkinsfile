@@ -5,10 +5,6 @@ pipeline {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
     }
 
-    tools {
-        sonarScanner 'SonarScanner' // This should match the name in Jenkins Global Tool Configuration
-    }
-
     stages {
         stage('Clean Workspace') {
             steps {
@@ -24,9 +20,9 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('MySonarQube') { 
+                withSonarQubeEnv('MySonarQube') {
                     dir('bookmyshow-app') {
-                        sh 'sonar-scanner -Dsonar.projectKey=book-my-show -Dsonar.sources=src'
+                        sh 'sonar-scanner -Dsonar.projectKey=book-my-show -Dsonar.sources=src -Dsonar.login=${SonarQube-Token}'
                     }
                 }
             }
