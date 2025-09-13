@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "vishalk15v/book-my-show"   
+        DOCKER_IMAGE = "vishalk15v/book-my-show"
     }
 
     stages {
@@ -36,12 +36,20 @@ pipeline {
             steps {
                 dir('bookmyshow-app') {
                     script {
-                        docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
-                            def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
-                            img.push()
-                            sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
-                            sh "docker push ${env.DOCKER_IMAGE}:latest"
-                        }
+                        sh """
+                          echo 'Logging in to DockerHub...'
+                          echo \$DOCKER_HUB_PASSWORD | docker login -u \$DOCKER_HUB_USERNAME --password-stdin
+                          
+                          echo 'Building Docker Image...'
+                          docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                          
+                          echo 'Tagging as latest...'
+                          docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                          
+                          echo 'Pushing to DockerHub...'
+                          docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                          docker push ${DOCKER_IMAGE}:latest
+                        """
                     }
                 }
             }
@@ -49,12 +57,12 @@ pipeline {
 
         stage('Deploy to Docker Container') {
             steps {
-                dir('bookmyshow-app') {
-                    script {
-                        sh 'docker stop bms_app || true'
-                        sh 'docker rm bms_app || true'
-                        sh 'docker run -d --name bms_app -p 3000:3000 ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}'
-                    }
+                script {
+                    sh """
+                      docker stop bms_app || true
+                      docker rm bms_app || true
+                      docker run -d --name bms_app -p 3000:3000 ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                    """
                 }
             }
         }
