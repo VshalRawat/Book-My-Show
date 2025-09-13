@@ -33,19 +33,19 @@ pipeline {
         }
 
         stage('Docker Build & Push') {
-    steps {
-        dir('bookmyshow-app') {
-            script {
-                docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
-                    def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
-                    img.push()
-                    sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
-                    sh "docker push ${env.DOCKER_IMAGE}:latest"
+            steps {
+                dir('bookmyshow-app') {
+                    script {
+                        docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
+                            def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
+                            img.push()
+                            sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
+                            sh "docker push ${env.DOCKER_IMAGE}:latest"
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
         stage('Deploy to Docker Container') {
             steps {
@@ -56,19 +56,27 @@ pipeline {
                 }
             }
         }
+
+        stage('Email Notification') {
+            steps {
+                script {
+                    mail to: 'vishalrawat27m@gmail.com',
+                         subject: "Jenkins Build ${currentBuild.fullDisplayName}",
+                         body: "Build Status: ${currentBuild.currentResult}\nCheck console output at ${env.BUILD_URL}"
+                }
+            }
+        }
     }
 
     post {
-    always {
-        echo "Build finished!"
-        mail to: 'vishalrawat27m@gmail.com',
-             subject: "Jenkins Build ${currentBuild.fullDisplayName}",
-             body: "Build Status: ${currentBuild.currentResult}\nCheck console output at ${env.BUILD_URL}"
-    }
-    success {
-        echo "Build and Deploy Successful!"
-    }
-    failure {
-        echo "Build Failed!"
+        always {
+            echo "Build finished!"
+        }
+        success {
+            echo "Build and Deploy Successful!"
+        }
+        failure {
+            echo "Build Failed!"
+        }
     }
 }
