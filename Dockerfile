@@ -1,14 +1,16 @@
 FROM node:18
 WORKDIR /app
 
-# Copy dependency files from app folder
+# Copy dependency files from bookmyshow-app folder
 COPY bookmyshow-app/package*.json ./
 
-# Install dependencies
+# Install specific dependencies first
 RUN npm install postcss@8.4.21 postcss-safe-parser@6.0.0 --legacy-peer-deps
-RUN npm install
 
-# Copy all app files
+# Install all other dependencies
+RUN npm install --legacy-peer-deps
+
+# Copy all app files from bookmyshow-app folder
 COPY bookmyshow-app/ ./
 
 # Environment variables
