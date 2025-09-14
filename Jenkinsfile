@@ -19,21 +19,19 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh """
-                        # Use sonar-scanner installed on EC2
-                        sonar-scanner \
-                          -Dsonar.projectKey=BookMyShow \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url=http://13.49.160.95:9000 \
-                          -Dsonar.login=${SONAR_TOKEN}
-                    """
-                }
+            stage('SonarQube Analysis') {
+        steps {
+            withSonarQubeEnv('SonarQube') {
+                sh """
+                    /opt/sonar-scanner/bin/sonar-scanner \
+                      -Dsonar.projectKey=BookMyShow \
+                      -Dsonar.sources=. \
+                      -Dsonar.host.url=http://13.49.160.95:9000 \
+                      -Dsonar.login=${SONAR_TOKEN}
+                """
             }
         }
-
+    }
         stage('Quality Gate') {
             steps {
                 // Wait for SonarQube Quality Gate result
