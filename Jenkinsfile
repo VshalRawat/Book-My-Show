@@ -27,7 +27,7 @@ pipeline {
                         /opt/sonar-scanner/bin/sonar-scanner \
                         -Dsonar.projectKey=book-my-show \
                         -Dsonar.sources=src \
-                        -Dsonar.host.url=http://http://13.49.160.95:9000 \
+                        -Dsonar.host.url=http://13.49.160.95:9000 \
                         -Dsonar.login=${SONAR_TOKEN}
                     """
                 }
