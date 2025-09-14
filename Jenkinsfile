@@ -91,7 +91,7 @@ pipeline {
                     mail to: 'vishalrawat27m@gmail.com',
                          subject: "Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                          body: """
-                         Build Status: SUCCESS ✅
+                         Build Status: SUCCESS
                          
                          Project: ${env.JOB_NAME}
                          Build Number: #${env.BUILD_NUMBER}
