@@ -67,7 +67,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 echo "Building Docker image..."
-                sleep 320
+                sleep 240
                 echo "Pushing image to DockerHub..."
                 sleep 60
                 echo "Docker image built and pushed successfully"
