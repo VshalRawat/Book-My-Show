@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
+        GITHUB_REPO = "https://github.com/VshalRawat/Book-My-Show.git"
     }
 
     stages {
@@ -14,6 +15,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
+                git branch: 'main', url: 'https://github.com/VshalRawat/Book-My-Show.git'
                 echo "Code checked out successfully from GitHub"
             }
         }
@@ -71,6 +73,7 @@ pipeline {
     post {
         always {
             echo "Build ${currentBuild.fullDisplayName} completed"
+            echo "GitHub Repository: ${env.GITHUB_REPO}"
             cleanWs()
             sh 'docker logout || true'
         }
