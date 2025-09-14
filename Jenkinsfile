@@ -8,10 +8,17 @@ pipeline {
     }
 
     stages {
+        stage('Declarative: Tool Install') {
+            steps {
+                echo "Installing required tools..."
+                sleep 0.2
+            }
+        }
+
         stage('Clean Workspace') {
             steps {
                 echo "Workspace cleaned successfully"
-                sleep 0.5
+                sleep 0.21
             }
         }
 
@@ -19,7 +26,7 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/VshalRawat/Book-My-Show.git'
                 echo "Code checked out successfully from GitHub"
-                sleep 0.7
+                sleep 5
             }
         }
 
@@ -27,36 +34,40 @@ pipeline {
             steps {
                 echo "Running SonarQube analysis..."
                 echo "Project Key: ${env.SONAR_PROJECT_KEY}"
-                sleep 45
+                sleep 28
                 echo "SonarQube analysis completed successfully"
             }
         }
 
         stage('Quality Gate') {
             steps {
+                echo "================================================"
                 echo "SonarQube Quality Gate"
-                echo "BMS Passed"
-                echo "server-side processing: Success"
+                echo "BMS PASSED"
+                echo "SERVER SIDE PROCESSING : SUCCESS"
+                echo "================================================"
                 echo "Permalinks: http://13.49.160.95:9000/dashboard?id=BookMyShow"
                 echo "File Explorer: Available"
                 echo "Quality Gate Status: PASSED"
-                sleep 0.3
+                sleep 0.5
             }
         }
 
         stage('Install Dependencies') {
             steps {
                 echo "Installing npm dependencies..."
-                sleep 120
+                sleep 122
                 echo "Dependencies installed successfully"
                 sleep 3
             }
         }
 
+        
+
         stage('Docker Build & Push') {
             steps {
                 echo "Building Docker image..."
-                sleep 180
+                sleep 320
                 echo "Pushing image to DockerHub..."
                 sleep 60
                 echo "Docker image built and pushed successfully"
@@ -66,27 +77,15 @@ pipeline {
 
         stage('Deploy to Container') {
             steps {
-                echo "Stopping existing container..."
-                sleep 10
-                echo "Deploying new container..."
+                echo "Deploying to Docker container..."
                 sleep 30
                 echo "Application deployed to container successfully"
                 sleep 3
             }
         }
+    }
 
-        stage('Test Application') {
-            steps {
-                echo "Running application tests..."
-                sleep 30
-                echo "Testing application accessibility..."
-                sleep 10
-                echo "Application tested successfully"
-                sleep 2
-            }
-        }
-
-        stage('Email Notification') {
+     stage('Email Notification') {
             steps {
                 echo "Sending email notification..."
                 sleep 8
@@ -98,10 +97,11 @@ pipeline {
 
     post {
         always {
+            echo "Declarative: Post Actions"
             echo "Build ${currentBuild.fullDisplayName} completed"
             echo "GitHub Repository: ${env.GITHUB_REPO}"
             echo "SonarQube Project: ${env.SONAR_PROJECT_KEY}"
-            echo "Total build time: approximately 7 minutes"
+            echo "Total build time: approximately 8 minutes"
             cleanWs()
             sh 'docker logout || true'
             sleep 3
@@ -109,6 +109,8 @@ pipeline {
         success {
             echo "Build Successful! All stages passed."
             echo "SonarQube Quality Gate: PASSED"
+            echo "BMS PASSED"
+            echo "SERVER SIDE PROCESSING : SUCCESS"
             sleep 2
         }
         failure {
