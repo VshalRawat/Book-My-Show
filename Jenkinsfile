@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
-        SONAR_TOKEN = credentials('SonarQube-Tokenn') 
+        SONAR_TOKEN = credentials('SonarQube-Tokenn') // Make sure the credentials ID is correct
+        SONAR_HOST_URL = "http://13.49.160.95:9000"  // New Elastic IP
     }
 
     stages {
@@ -19,22 +20,20 @@ pipeline {
             }
         }
 
-                stage('SonarQube Analysis') {
-        steps {
-            withSonarQubeEnv('MySonarQube') {
+        stage('SonarQube Analysis') {
+            steps {
                 dir('bookmyshow-app') {
+                    // Run SonarScanner with proper token and new Elastic IP
                     sh """
                         /opt/sonar-scanner/bin/sonar-scanner \
                         -Dsonar.projectKey=book-my-show \
                         -Dsonar.sources=src \
-                        -Dsonar.host.url=http://13.49.160.95:9000 \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
                         -Dsonar.login=${SONAR_TOKEN}
                     """
                 }
             }
         }
-    }
-
 
         stage('Install Dependencies') {
             steps {
