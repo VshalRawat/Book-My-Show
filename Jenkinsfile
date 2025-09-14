@@ -3,8 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
-        SONAR_TOKEN = credentials('SonarQube-Tokenn') // Make sure the credentials ID is correct
-        SONAR_HOST_URL = "http://13.49.160.95:9000"  // New Elastic IP
+        SONAR_TOKEN  = credentials('SonarQube-Tokenn')
     }
 
     stages {
@@ -22,15 +21,23 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                dir('bookmyshow-app') {
-                    // Run SonarScanner with proper token and new Elastic IP
+                withSonarQubeEnv('SonarQube') {
                     sh """
-                        /opt/sonar-scanner/bin/sonar-scanner \
-                        -Dsonar.projectKey=book-my-show \
-                        -Dsonar.sources=src \
-                        -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.login=${SONAR_TOKEN}
+                        sonar-scanner \
+                          -Dsonar.projectKey=BookMyShow \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=http://13.49.160.95/:9000 \
+                          -Dsonar.login=${SONAR_TOKEN}
                     """
+                }
+            }
+        }
+
+      
+        stage('SonarQube Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') { 
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
