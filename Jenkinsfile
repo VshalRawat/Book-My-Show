@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
         SONAR_TOKEN  = credentials('SonarQube-Tokenn')
+        DOCKER_REGISTRY_CREDENTIALS = 'Vishal-Dockerhub-Credentials'
     }
 
     stages {
@@ -19,22 +20,26 @@ pipeline {
             }
         }
 
-            stage('SonarQube Analysis') {
-        steps {
-            withSonarQubeEnv('SonarQube') {
-                sh """
-                    /opt/sonar-scanner/bin/sonar-scanner \
-                      -Dsonar.projectKey=BookMyShow \
-                      -Dsonar.sources=. \
-                      -Dsonar.host.url=http://13.49.160.95:9000 \
-                      -Dsonar.login=${SONAR_TOKEN}
-                """
+        stage('SonarQube Analysis') {
+            steps {
+                dir('bookmyshow-app') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            sonar-scanner \
+                            -Dsonar.projectKey=BookMyShow \
+                            -Dsonar.sources=. \
+                            -Dsonar.host.url=http://13.49.160.95:9000 \
+                            -Dsonar.login=${SONAR_TOKEN} \
+                            -Dsonar.projectVersion=${env.BUILD_NUMBER} \
+                            -Dsonar.sourceEncoding=UTF-8
+                        """
+                    }
+                }
             }
         }
-    }
+
         stage('Quality Gate') {
             steps {
-                // Wait for SonarQube Quality Gate result
                 timeout(time: 5, unit: 'MINUTES') { 
                     waitForQualityGate abortPipeline: true
                 }
@@ -44,7 +49,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 dir('bookmyshow-app') {
-                    sh 'npm install'
+                    sh 'npm install --legacy-peer-deps'
                 }
             }
         }
@@ -53,12 +58,23 @@ pipeline {
             steps {
                 dir('bookmyshow-app') {
                     script {
-                        docker.withRegistry('', 'Vishal-Dockerhub-Credentials') {
-                            def img = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
-                            img.push()
-                            sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
-                            sh "docker push ${env.DOCKER_IMAGE}:latest"
+                      
+                        withCredentials([usernamePassword(credentialsId: env.DOCKER_REGISTRY_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin"
                         }
+                        
+                     
+                        def customImage = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}", "--build-arg NODE_OPTIONS=--openssl-legacy-provider .")
+                        
+                   
+                        customImage.push()
+                        
+              
+                        sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
+                        sh "docker push ${env.DOCKER_IMAGE}:latest"
+                        
+                    
+                        sh "docker rmi ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest || true"
                     }
                 }
             }
@@ -67,31 +83,91 @@ pipeline {
         stage('Deploy to Docker Container') {
             steps {
                 script {
+                  
                     sh 'docker stop bms_app || true'
                     sh 'docker rm bms_app || true'
-                    sh "docker run -d --name bms_app -p 3000:3000 ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
+                    
+                    
+                    sh "docker pull ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
+                    
+                 
+                    sh """
+                        docker run -d \
+                        --name bms_app \
+                        -p 3000:3000 \
+                        -e NODE_OPTIONS=--openssl-legacy-provider \
+                        -e PORT=3000 \
+                        ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
+                    """
+                    
+                  
+                    sh 'sleep 10' 
+                    sh 'curl -f http://localhost:3000 || exit 1'
+                }
+            }
+        }
+
+        stage('Test Application') {
+            steps {
+                script {
+                   
+                    sh '''
+                        echo "Testing application accessibility..."
+                        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+                        if [ "$response" -eq 200 ]; then
+                            echo "Application is running successfully!"
+                        else
+                            echo "Application test failed with HTTP code: $response"
+                            exit 1
+                        fi
+                    '''
                 }
             }
         }
 
         stage('Email Notification') {
             steps {
-                mail to: 'vishalrawat27m@gmail.com',
-                     subject: "Jenkins Build ${currentBuild.fullDisplayName}",
-                     body: "Build Status: ${currentBuild.currentResult}\nCheck console output at ${env.BUILD_URL}"
+                script {
+                    def buildStatus = currentBuild.currentResult
+                    def subject = "Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${buildStatus}"
+                    def body = """
+                        Build: ${env.JOB_NAME} #${env.BUILD_NUMBER}
+                        Status: ${buildStatus}
+                        Duration: ${currentBuild.durationString}
+                        URL: ${env.BUILD_URL}
+                        
+                        Docker Image: ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
+                        Application URL: http://localhost:3000
+                    """
+
+                    mail to: 'vishalrawat27m@gmail.com',
+                         subject: subject,
+                         body: body
+                }
             }
         }
     }
 
     post {
         always {
-            echo "Build finished!"
+            echo "Build ${currentBuild.fullDisplayName} completed with status: ${currentBuild.currentResult}"
+            
+           
+            cleanWs()
+            
+       
+            sh 'docker logout || true'
         }
         success {
             echo "Build and Deploy Successful!"
+            
         }
         failure {
             echo "Build Failed!"
+          
+        }
+        unstable {
+            echo "Build is unstable!"
         }
     }
 }
