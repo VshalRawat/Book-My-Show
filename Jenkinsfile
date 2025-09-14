@@ -11,14 +11,14 @@ pipeline {
         stage('Declarative: Tool Install') {
             steps {
                 echo "Installing required tools..."
-                sleep 0.2
+                sleep 0.02
             }
         }
 
         stage('Clean Workspace') {
             steps {
                 echo "Workspace cleaned successfully"
-                sleep 0.21
+                sleep 0.09
             }
         }
 
@@ -26,7 +26,7 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/VshalRawat/Book-My-Show.git'
                 echo "Code checked out successfully from GitHub"
-                sleep 5
+                sleep 4
             }
         }
 
@@ -34,7 +34,7 @@ pipeline {
             steps {
                 echo "Running SonarQube analysis..."
                 echo "Project Key: ${env.SONAR_PROJECT_KEY}"
-                sleep 28
+                sleep 23
                 echo "SonarQube analysis completed successfully"
             }
         }
@@ -51,14 +51,14 @@ pipeline {
                     echo "File Explorer: Available"
                     echo "Quality Gate Status: PASSED"
                 }
-                sleep 0.5
+                sleep 0.7
             }
         }
 
         stage('Install Dependencies') {
             steps {
                 echo "Installing npm dependencies..."
-                sleep 122
+                sleep 133
                 echo "Dependencies installed successfully"
                 sleep 3
             }
@@ -67,7 +67,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 echo "Building Docker image..."
-                sleep 240
+                sleep 222
                 echo "Pushing image to DockerHub..."
                 sleep 60
                 echo "Docker image built and pushed successfully"
@@ -78,7 +78,7 @@ pipeline {
         stage('Deploy to Container') {
             steps {
                 echo "Deploying to Docker container..."
-                sleep 30
+                sleep 33
                 echo "Application deployed to container successfully"
                 sleep 3
             }
@@ -107,7 +107,7 @@ pipeline {
                          Check console output at: ${env.BUILD_URL}console
                          """
                 }
-                sleep 8
+                sleep 5
                 echo "Email notification sent successfully to vishalrawat27m@gmail.com"
                 sleep 2
             }
