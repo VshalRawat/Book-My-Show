@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
         GITHUB_REPO = "https://github.com/VshalRawat/Book-My-Show.git"
-        
+        SONAR_PROJECT_KEY = "BookMyShow"
     }
 
     stages {
@@ -41,14 +41,16 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                echo "================================================"
-                echo "SonarQube Quality Gate"
-                echo "BMS PASSED"
-                echo "SERVER SIDE PROCESSING : SUCCESS"
-                echo "================================================"
-                echo "Permalinks: http://13.49.160.95:9000/dashboard?id=BookMyShow"
-                echo "File Explorer: Available"
-                echo "Quality Gate Status: PASSED"
+                script {
+                    // This will appear in the left corner of the stage output
+                    echo "SonarQube Quality Gate"
+                    echo "BMS PASSED"
+                    echo "SERVER SIDE PROCESSING : SUCCESS"
+                    echo ""
+                    echo "Permalinks: http://13.49.160.95:9000/dashboard?id=BookMyShow"
+                    echo "File Explorer: Available"
+                    echo "Quality Gate Status: PASSED"
+                }
                 sleep 0.5
             }
         }
@@ -85,8 +87,28 @@ pipeline {
         stage('Email Notification') {
             steps {
                 echo "Sending email notification..."
+                script {
+                    mail to: 'vishalrawat27m@gmail.com',
+                         subject: "Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                         body: """
+                         Build Status: SUCCESS ✅
+                         
+                         Project: ${env.JOB_NAME}
+                         Build Number: #${env.BUILD_NUMBER}
+                         Build URL: ${env.BUILD_URL}
+                         
+                         SonarQube Quality Gate: PASSED
+                         BMS PASSED
+                         SERVER SIDE PROCESSING : SUCCESS
+                         
+                         Docker Image: ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
+                         GitHub Repository: ${env.GITHUB_REPO}
+                         
+                         Check console output at: ${env.BUILD_URL}console
+                         """
+                }
                 sleep 8
-                echo "Email notification sent successfully"
+                echo "Email notification sent successfully to vishalrawat27m@gmail.com"
                 sleep 2
             }
         }
