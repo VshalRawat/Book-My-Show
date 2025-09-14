@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
-        SONAR_TOKEN = credentials('SonarQube-Token') 
+        SONAR_TOKEN = credentials('SonarQube-Tokenn') 
     }
 
     stages {
