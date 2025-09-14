@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
         GITHUB_REPO = "https://github.com/VshalRawat/Book-My-Show.git"
-        SONAR_PROJECT_KEY = "BookMyShow"
+        
     }
 
     stages {
@@ -62,8 +62,6 @@ pipeline {
             }
         }
 
-        
-
         stage('Docker Build & Push') {
             steps {
                 echo "Building Docker image..."
@@ -83,9 +81,8 @@ pipeline {
                 sleep 3
             }
         }
-    }
 
-     stage('Email Notification') {
+        stage('Email Notification') {
             steps {
                 echo "Sending email notification..."
                 sleep 8
