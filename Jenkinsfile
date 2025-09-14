@@ -19,21 +19,22 @@ pipeline {
             }
         }
 
-            stage('SonarQube Analysis') {
+                stage('SonarQube Analysis') {
         steps {
             withSonarQubeEnv('MySonarQube') {
                 dir('bookmyshow-app') {
-                    sh '''
-                        sonar-scanner \
-                          -Dsonar.projectKey=book-my-show \
-                          -Dsonar.sources=src \
-                          -Dsonar.host.url=http://16.171.33.141:9000 \
-                          -Dsonar.login=$SONAR_TOKEN
-                    '''
+                    sh """
+                        /opt/sonar-scanner/bin/sonar-scanner \
+                        -Dsonar.projectKey=book-my-show \
+                        -Dsonar.sources=src \
+                        -Dsonar.host.url=http://16.171.33.141:9000 \
+                        -Dsonar.login=${SONAR_TOKEN}
+                    """
                 }
             }
         }
     }
+
 
         stage('Install Dependencies') {
             steps {
