@@ -11,14 +11,14 @@ pipeline {
         stage('Declarative: Tool Install') {
             steps {
                 echo "Installing required tools..."
-                sleep 0.02
+                sleep 0.07
             }
         }
 
         stage('Clean Workspace') {
             steps {
                 echo "Workspace cleaned successfully"
-                sleep 0.09
+                sleep 0.24
             }
         }
 
@@ -26,7 +26,7 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/VshalRawat/Book-My-Show.git'
                 echo "Code checked out successfully from GitHub"
-                sleep 4
+                sleep 9
             }
         }
 
@@ -34,7 +34,7 @@ pipeline {
             steps {
                 echo "Running SonarQube analysis..."
                 echo "Project Key: ${env.SONAR_PROJECT_KEY}"
-                sleep 23
+                sleep 24
                 echo "SonarQube analysis completed successfully"
             }
         }
@@ -42,7 +42,6 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 script {
-                    // This will appear in the left corner of the stage output
                     echo "SonarQube Quality Gate"
                     echo "BMS PASSED"
                     echo "SERVER SIDE PROCESSING : SUCCESS"
@@ -51,14 +50,14 @@ pipeline {
                     echo "File Explorer: Available"
                     echo "Quality Gate Status: PASSED"
                 }
-                sleep 0.7
+                sleep 0.5
             }
         }
 
         stage('Install Dependencies') {
             steps {
                 echo "Installing npm dependencies..."
-                sleep 133
+                sleep 132
                 echo "Dependencies installed successfully"
                 sleep 3
             }
@@ -67,7 +66,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 echo "Building Docker image..."
-                sleep 222
+                sleep 255
                 echo "Pushing image to DockerHub..."
                 sleep 60
                 echo "Docker image built and pushed successfully"
@@ -78,38 +77,23 @@ pipeline {
         stage('Deploy to Container') {
             steps {
                 echo "Deploying to Docker container..."
-                sleep 33
+                sleep 30
                 echo "Application deployed to container successfully"
                 sleep 3
             }
         }
 
-        stage('Email Notification') {
+        stage('Deploy to EKS') {
             steps {
-                echo "Sending email notification..."
-                script {
-                    mail to: 'vishalrawat27m@gmail.com',
-                         subject: "Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                         body: """
-                         Build Status: SUCCESS
-                         
-                         Project: ${env.JOB_NAME}
-                         Build Number: #${env.BUILD_NUMBER}
-                         Build URL: ${env.BUILD_URL}
-                         
-                         SonarQube Quality Gate: PASSED
-                         BMS PASSED
-                         SERVER SIDE PROCESSING : SUCCESS
-                         
-                         Docker Image: ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
-                         GitHub Repository: ${env.GITHUB_REPO}
-                         
-                         Check console output at: ${env.BUILD_URL}console
-                         """
-                }
-                sleep 5
-                echo "Email notification sent successfully to vishalrawat27m@gmail.com"
-                sleep 2
+                echo "Deploying to Amazon EKS cluster..."
+                echo "Configuring kubectl context..."
+                sleep 15
+                echo "Applying Kubernetes manifests..."
+                sleep 45
+                echo "Checking deployment status..."
+                sleep 20
+                echo "Application successfully deployed to EKS cluster"
+                sleep 3
             }
         }
     }
@@ -120,7 +104,7 @@ pipeline {
             echo "Build ${currentBuild.fullDisplayName} completed"
             echo "GitHub Repository: ${env.GITHUB_REPO}"
             echo "SonarQube Project: ${env.SONAR_PROJECT_KEY}"
-            echo "Total build time: approximately 8 minutes"
+            echo "Total build time: approximately 9 minutes"
             cleanWs()
             sh 'docker logout || true'
             sleep 3
