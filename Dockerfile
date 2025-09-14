@@ -1,20 +1,22 @@
-# Use official Node.js LTS image as base
-FROM node:18-alpine
-
-# Set working directory inside container
+FROM node:18
 WORKDIR /app
 
-# Copy package.json and package-lock.json first (better caching)
-COPY package*.json ./
+# Copy dependency files from the app folder
+COPY bookmyshow-app/package*.json ./
 
 # Install dependencies
+RUN npm install postcss@8.4.21 postcss-safe-parser@6.0.0 --legacy-peer-deps
 RUN npm install
 
-# Copy the rest of the app code
-COPY . .
+# Copy all application files
+COPY bookmyshow-app/ ./
 
-# Expose port 3000
+# Set environment variables
+ENV NODE_OPTIONS=--openssl-legacy-provider
+ENV PORT=3000
+
+# Expose port
 EXPOSE 3000
 
-# Command to run the app
+# Start the app
 CMD ["npm", "start"]
