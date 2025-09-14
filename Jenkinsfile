@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
+        SONAR_TOKEN = credentials('SonarQube-Token') 
     }
 
     stages {
@@ -18,15 +19,21 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('MySonarQube') {
-                    dir('bookmyshow-app') {
-                        sh 'sonar-scanner -Dsonar.projectKey=book-my-show -Dsonar.sources=src -Dsonar.login=${SonarQube-Token}'
-                    }
+            stage('SonarQube Analysis') {
+        steps {
+            withSonarQubeEnv('MySonarQube') {
+                dir('bookmyshow-app') {
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.projectKey=book-my-show \
+                          -Dsonar.sources=src \
+                          -Dsonar.host.url=http://16.171.33.141:9000 \
+                          -Dsonar.login=$SONAR_TOKEN
+                    '''
                 }
             }
         }
+    }
 
         stage('Install Dependencies') {
             steps {
