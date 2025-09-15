@@ -58,23 +58,44 @@ pipeline {
             steps {
                 dir('bookmyshow-app') {
                     script {
-                      
                         withCredentials([usernamePassword(credentialsId: env.DOCKER_REGISTRY_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                             sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin"
                         }
                         
-                     
                         def customImage = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}", "--build-arg NODE_OPTIONS=--openssl-legacy-provider .")
                         
-                   
                         customImage.push()
                         
-              
                         sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
                         sh "docker push ${env.DOCKER_IMAGE}:latest"
                         
-                    
                         sh "docker rmi ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest || true"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    dir('bookmyshow-app') {
+                      
+                        sh """
+                            aws eks update-kubeconfig --region ${env.AWS_REGION} --name ${env.EKS_CLUSTER}
+                        """
+
+        
+                        sh """
+                            kubectl apply -f k8s/deployment.yaml -n ${env.K8S_NAMESPACE}
+                            kubectl apply -f k8s/service.yaml -n ${env.K8S_NAMESPACE}
+                        """
+
+                        sh """
+                            kubectl set image deployment/bookmyshow-deployment bookmyshow-container=${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} -n ${env.K8S_NAMESPACE}
+                        """
+
+
+                        sh "kubectl rollout status deployment/bookmyshow-deployment -n ${env.K8S_NAMESPACE}"
                     }
                 }
             }
@@ -83,14 +104,9 @@ pipeline {
         stage('Deploy to Docker Container') {
             steps {
                 script {
-                  
                     sh 'docker stop bms_app || true'
                     sh 'docker rm bms_app || true'
-                    
-                    
                     sh "docker pull ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
-                    
-                 
                     sh """
                         docker run -d \
                         --name bms_app \
@@ -99,9 +115,7 @@ pipeline {
                         -e PORT=3000 \
                         ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
                     """
-                    
-                  
-                    sh 'sleep 10' 
+                    sh 'sleep 10'
                     sh 'curl -f http://localhost:3000 || exit 1'
                 }
             }
@@ -110,7 +124,6 @@ pipeline {
         stage('Test Application') {
             steps {
                 script {
-                   
                     sh '''
                         echo "Testing application accessibility..."
                         response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
@@ -125,46 +138,19 @@ pipeline {
             }
         }
 
-        stage('Email Notification') {
-            steps {
-                script {
-                    def buildStatus = currentBuild.currentResult
-                    def subject = "Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${buildStatus}"
-                    def body = """
-                        Build: ${env.JOB_NAME} #${env.BUILD_NUMBER}
-                        Status: ${buildStatus}
-                        Duration: ${currentBuild.durationString}
-                        URL: ${env.BUILD_URL}
-                        
-                        Docker Image: ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
-                        Application URL: http://localhost:3000
-                    """
-
-                    mail to: 'vishalrawat27m@gmail.com',
-                         subject: subject,
-                         body: body
-                }
-            }
-        }
-    }
+    
 
     post {
         always {
             echo "Build ${currentBuild.fullDisplayName} completed with status: ${currentBuild.currentResult}"
-            
-           
             cleanWs()
-            
-       
             sh 'docker logout || true'
         }
         success {
             echo "Build and Deploy Successful!"
-            
         }
         failure {
             echo "Build Failed!"
-          
         }
         unstable {
             echo "Build is unstable!"
