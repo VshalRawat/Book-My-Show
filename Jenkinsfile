@@ -3,126 +3,171 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "vishalk15v/book-my-show"
-        GITHUB_REPO = "https://github.com/VshalRawat/Book-My-Show.git"
-        SONAR_PROJECT_KEY = "BookMyShow"
+        SONAR_TOKEN  = credentials('SonarQube-Tokenn')
+        DOCKER_REGISTRY_CREDENTIALS = 'Vishal-Dockerhub-Credentials'
     }
 
     stages {
-        stage('Declarative: Tool Install') {
-            steps {
-                echo "Installing required tools..."
-                sleep 0.07
-            }
-        }
-
         stage('Clean Workspace') {
             steps {
-                echo "Workspace cleaned successfully"
-                sleep 0.24
+                cleanWs()
             }
         }
 
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/VshalRawat/Book-My-Show.git'
-                echo "Code checked out successfully from GitHub"
-                sleep 9
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                echo "Running SonarQube analysis..."
-                echo "Project Key: ${env.SONAR_PROJECT_KEY}"
-                sleep 24
-                echo "SonarQube analysis completed successfully"
+                dir('bookmyshow-app') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            sonar-scanner \
+                            -Dsonar.projectKey=BookMyShow \
+                            -Dsonar.sources=. \
+                            -Dsonar.host.url=http://13.49.160.95:9000 \
+                            -Dsonar.login=${SONAR_TOKEN} \
+                            -Dsonar.projectVersion=${env.BUILD_NUMBER} \
+                            -Dsonar.sourceEncoding=UTF-8
+                        """
+                    }
+                }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                script {
-                    echo "SonarQube Quality Gate"
-                    echo "BMS PASSED"
-                    echo "SERVER SIDE PROCESSING : SUCCESS"
-                    echo ""
-                    echo "Permalinks: http://13.49.160.95:9000/dashboard?id=BookMyShow"
-                    echo "File Explorer: Available"
-                    echo "Quality Gate Status: PASSED"
+                timeout(time: 5, unit: 'MINUTES') { 
+                    waitForQualityGate abortPipeline: true
                 }
-                sleep 0.5
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                echo "Installing npm dependencies..."
-                sleep 132
-                echo "Dependencies installed successfully"
-                sleep 3
+                dir('bookmyshow-app') {
+                    sh 'npm install --legacy-peer-deps'
+                }
             }
         }
 
         stage('Docker Build & Push') {
             steps {
-                echo "Building Docker image..."
-                sleep 255
-                echo "Pushing image to DockerHub..."
-                sleep 60
-                echo "Docker image built and pushed successfully"
-                sleep 3
+                dir('bookmyshow-app') {
+                    script {
+                      
+                        withCredentials([usernamePassword(credentialsId: env.DOCKER_REGISTRY_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin"
+                        }
+                        
+                     
+                        def customImage = docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}", "--build-arg NODE_OPTIONS=--openssl-legacy-provider .")
+                        
+                   
+                        customImage.push()
+                        
+              
+                        sh "docker tag ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest"
+                        sh "docker push ${env.DOCKER_IMAGE}:latest"
+                        
+                    
+                        sh "docker rmi ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER} ${env.DOCKER_IMAGE}:latest || true"
+                    }
+                }
             }
         }
 
-        stage('Deploy to Container') {
+        stage('Deploy to Docker Container') {
             steps {
-                echo "Deploying to Docker container..."
-                sleep 30
-                echo "Application deployed to container successfully"
-                sleep 3
+                script {
+                  
+                    sh 'docker stop bms_app || true'
+                    sh 'docker rm bms_app || true'
+                    
+                    
+                    sh "docker pull ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}"
+                    
+                 
+                    sh """
+                        docker run -d \
+                        --name bms_app \
+                        -p 3000:3000 \
+                        -e NODE_OPTIONS=--openssl-legacy-provider \
+                        -e PORT=3000 \
+                        ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
+                    """
+                    
+                  
+                    sh 'sleep 10' 
+                    sh 'curl -f http://localhost:3000 || exit 1'
+                }
             }
         }
 
-        stage('Deploy to EKS') {
+        stage('Test Application') {
             steps {
-                echo "Deploying to Amazon EKS cluster..."
-                echo "Configuring kubectl context..."
-                sleep 15
-                echo "Applying Kubernetes manifests..."
-                sleep 45
-                echo "Checking deployment status..."
-                sleep 20
-                echo "Application successfully deployed to EKS cluster"
-                sleep 3
+                script {
+                   
+                    sh '''
+                        echo "Testing application accessibility..."
+                        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+                        if [ "$response" -eq 200 ]; then
+                            echo "Application is running successfully!"
+                        else
+                            echo "Application test failed with HTTP code: $response"
+                            exit 1
+                        fi
+                    '''
+                }
+            }
+        }
+
+        stage('Email Notification') {
+            steps {
+                script {
+                    def buildStatus = currentBuild.currentResult
+                    def subject = "Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${buildStatus}"
+                    def body = """
+                        Build: ${env.JOB_NAME} #${env.BUILD_NUMBER}
+                        Status: ${buildStatus}
+                        Duration: ${currentBuild.durationString}
+                        URL: ${env.BUILD_URL}
+                        
+                        Docker Image: ${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}
+                        Application URL: http://localhost:3000
+                    """
+
+                    mail to: 'vishalrawat27m@gmail.com',
+                         subject: subject,
+                         body: body
+                }
             }
         }
     }
 
     post {
         always {
-            echo "Declarative: Post Actions"
-            echo "Build ${currentBuild.fullDisplayName} completed"
-            echo "GitHub Repository: ${env.GITHUB_REPO}"
-            echo "SonarQube Project: ${env.SONAR_PROJECT_KEY}"
-            echo "Total build time: approximately 9 minutes"
+            echo "Build ${currentBuild.fullDisplayName} completed with status: ${currentBuild.currentResult}"
+            
+           
             cleanWs()
+            
+       
             sh 'docker logout || true'
-            sleep 3
         }
         success {
-            echo "Build Successful! All stages passed."
-            echo "SonarQube Quality Gate: PASSED"
-            echo "BMS PASSED"
-            echo "SERVER SIDE PROCESSING : SUCCESS"
-            sleep 2
+            echo "Build and Deploy Successful!"
+            
         }
         failure {
             echo "Build Failed!"
-            sleep 2
+          
         }
         unstable {
             echo "Build is unstable!"
-            sleep 2
         }
     }
 }
